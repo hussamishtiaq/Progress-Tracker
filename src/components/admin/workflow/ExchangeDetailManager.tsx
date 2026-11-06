@@ -15,7 +15,7 @@ import {
 import { formatPkt, toPktInputs } from "@/lib/time";
 import type { ActionResult } from "@/app/actions/students";
 import type {
-  ConnectionStatus, ExchangeConnectionRow, ExchangeListingRow, ExchangeParticipantRow, ExchangeRow, ExchangeStatus,
+  BatchRow, ClassRow, ConnectionStatus, ExchangeConnectionRow, ExchangeListingRow, ExchangeParticipantRow, ExchangeRow, ExchangeStatus,
 } from "@/lib/workflow-types";
 import { cn } from "@/lib/utils";
 
@@ -99,14 +99,18 @@ function SettingsPanel({ exchange }: { exchange: ExchangeRow }) {
 
 interface Member extends RosterOption { reveal: boolean | null }
 
-function ParticipantPicker({ exchangeId, role, members, roster }: { exchangeId: string; role: "provider" | "acceptor"; members: Member[]; roster: RosterOption[] }) {
+function ParticipantPicker({
+  exchangeId, role, members, roster, classes: classList, batches: batchList,
+}: {
+  exchangeId: string; role: "provider" | "acceptor"; members: Member[]; roster: RosterOption[]; classes: ClassRow[]; batches: BatchRow[];
+}) {
   const { run, busy } = useRun();
   const [query, setQuery] = useState("");
   const [classId, setClassId] = useState("");
   const [batchId, setBatchId] = useState("");
   const memberIds = useMemo(() => new Set(members.map((m) => m.id)), [members]);
-  const classes = useMemo(() => [...new Map(roster.filter((r) => r.classId).map((r) => [r.classId!, r.className ?? "Class"])).entries()], [roster]);
-  const batches = useMemo(() => [...new Map(roster.filter((r) => r.batchId && r.classId === classId).map((r) => [r.batchId!, r.batchName ?? "Batch"])).entries()], [roster, classId]);
+  const classes = useMemo(() => classList.map((c) => [c.id, c.name] as const), [classList]);
+  const batches = useMemo(() => batchList.filter((b) => b.class_id === classId).map((b) => [b.id, b.name] as const), [batchList, classId]);
   const matches = useMemo(() => (query.trim().length < 2 ? [] : roster.filter((r) => !memberIds.has(r.id) && r.name.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 8)), [roster, query, memberIds]);
 
   function save(ids: string[]) {
@@ -255,9 +259,10 @@ function ConnectionsPanel({
 }
 
 export function ExchangeDetailManager({
-  exchange, participants, listings, connections, roster,
+  exchange, participants, listings, connections, roster, classes, batches,
 }: {
   exchange: ExchangeRow; participants: ExchangeParticipantRow[]; listings: ExchangeListingRow[]; connections: ExchangeConnectionRow[]; roster: RosterOption[];
+  classes: ClassRow[]; batches: BatchRow[];
 }) {
   const byId = useMemo(() => new Map(roster.map((r) => [r.id, r])), [roster]);
   const nameOf = (id: string) => byId.get(id)?.name ?? "Unknown student";
@@ -274,8 +279,8 @@ export function ExchangeDetailManager({
       <SettingsPanel exchange={exchange} />
       <section aria-labelledby="participants-h" className="grid gap-4 rounded-2xl border border-border bg-card p-5 shadow-(--shadow-card) md:grid-cols-2">
         <h2 id="participants-h" className="sr-only">Participants</h2>
-        <ParticipantPicker exchangeId={exchange.id} role="provider" members={providers} roster={roster} />
-        <ParticipantPicker exchangeId={exchange.id} role="acceptor" members={acceptors} roster={roster} />
+        <ParticipantPicker exchangeId={exchange.id} role="provider" members={providers} roster={roster} classes={classes} batches={batches} />
+        <ParticipantPicker exchangeId={exchange.id} role="acceptor" members={acceptors} roster={roster} classes={classes} batches={batches} />
       </section>
       <section aria-labelledby="listings-h" className="space-y-3 rounded-2xl border border-border bg-card p-5 shadow-(--shadow-card)">
         <h2 id="listings-h" className="text-lg font-bold">Listings ({listings.length})</h2>

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { listRoster } from "@/lib/admin-queries";
 import { Button } from "@/components/ui/button";
 import { ExchangeDetailManager } from "@/components/admin/workflow/ExchangeDetailManager";
-import type { ExchangeConnectionRow, ExchangeListingRow, ExchangeParticipantRow, ExchangeRow } from "@/lib/workflow-types";
+import type { BatchRow, ClassRow, ExchangeConnectionRow, ExchangeListingRow, ExchangeParticipantRow, ExchangeRow } from "@/lib/workflow-types";
 
 export const metadata = { title: "Exchange" };
 
@@ -14,12 +14,14 @@ export default async function ExchangeDetailPage({ params }: PageProps<"/admin/e
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
   const sb = await createClient();
-  const [{ data: exchange }, { data: participants }, { data: listings }, { data: connections }, roster] = await Promise.all([
+  const [{ data: exchange }, { data: participants }, { data: listings }, { data: connections }, roster, { data: classes }, { data: batches }] = await Promise.all([
     sb.from("exchanges").select("*").eq("id", id).maybeSingle(),
     sb.from("exchange_participants").select("*").eq("exchange_id", id),
     sb.from("exchange_listings").select("*").eq("exchange_id", id),
     sb.from("exchange_connections").select("*").eq("exchange_id", id).order("requested_at", { ascending: false }),
     listRoster(sb),
+    sb.from("classes").select("*").eq("is_active", true).order("name"),
+    sb.from("batches").select("*").eq("is_active", true).order("name"),
   ]);
   if (!exchange) notFound();
 
@@ -32,6 +34,8 @@ export default async function ExchangeDetailPage({ params }: PageProps<"/admin/e
         listings={(listings ?? []) as ExchangeListingRow[]}
         connections={(connections ?? []) as ExchangeConnectionRow[]}
         roster={roster.filter((r) => r.user_id).map((r) => ({ id: r.id, name: r.name, className: r.class_name, batchName: r.batch_name, classId: r.class_id, batchId: r.batch_id }))}
+        classes={(classes ?? []) as ClassRow[]}
+        batches={(batches ?? []) as BatchRow[]}
       />
     </div>
   );
