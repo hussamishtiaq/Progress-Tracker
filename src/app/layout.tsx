@@ -10,7 +10,7 @@ const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ??
   (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
 
-export const metadata: Metadata = {
+export const metadata: Metadata = { 
   metadataBase: new URL(siteUrl),
   title: { default: "Student Journey Atlas – Track Progress & Badges", template: "%s | Student Journey Atlas" },
   description: "Student Journey Atlas – Track Progress & Badges. Browse students, skills and projects, and see how the badge system works.",
